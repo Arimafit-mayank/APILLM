@@ -55,7 +55,12 @@ def get_chain_diet():
                             )
     return diet_chain
 
-
+@app.route('/get_data', methods=['GET','POST'])
+def handle_data():
+    data = request.json  # Extract JSON data from the request
+    # Process the data here
+    # print("Received data:", data)
+    return jsonify({'message': 'Data received successfully'})
 
 @app.route('/request', methods = ['POST'])
 def main():
