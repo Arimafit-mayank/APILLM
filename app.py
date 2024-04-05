@@ -6,6 +6,9 @@ from langchain_community.document_loaders import CSVLoader
 from langchain_community.embeddings import HuggingFaceInstructEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain.chains import RetrievalQA
+import argparse
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 import os
 
 app = Flask(__name__)
@@ -17,6 +20,12 @@ instructor_embeddings = HuggingFaceInstructEmbeddings(model_name="hkunlp/instruc
 
 vector_file_path_exercise = "faiss_index_exercise"
 vector_file_path_diet = "faiss_index_diet"
+
+
+DEVELOPER_KEY = 'AIzaSyBercjcY50CUn2ju-SGkCdmKvpDlbPS7LM'
+YOUTUBE_API_SERVICE_NAME = 'youtube'
+YOUTUBE_API_VERSION = 'v3'
+app = Flask(__name__)
 
 def create_workout_vectordb():
     loader = CSVLoader("Workout.csv", encoding = "utf8")
@@ -54,6 +63,37 @@ def get_chain_diet():
                             return_source_documents=True
                             )
     return diet_chain
+
+
+@app.route('/get_video_id', methods=['POST'])
+def youtube_search():
+    query_term = request.form.get("Exercise")
+    # print(query_term)
+    query_term = "How to do" + query_term
+    youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION,
+        developerKey=DEVELOPER_KEY)
+
+    # Call the search.list method to retrieve results matching the specified
+    # query term.
+    search_response = youtube.search().list(
+        q=query_term,
+        part='id,snippet',
+        type='video',
+        relevanceLanguage='en',
+        maxResults=1
+    ).execute()
+
+    video_ids = []
+    search_response["items"][0]['id']['videoId']
+
+    # Add each result to the appropriate list, and then display the lists of
+    # matching videos, channels, and playlists.
+    for search_result in search_response.get('items', []):
+        video_ids.append(search_result['id']['videoId'])
+
+    for i in video_ids:
+        id = i
+    return id
 
 @app.route('/get_data', methods=['GET', 'POST'])
 def handle_data():
@@ -126,18 +166,18 @@ def handle_data():
     return jsonify({"repsonse":response})
 @app.route('/request', methods = ['POST'])
 def main():
-    #print("Select your Choice")
-    #print("Exercise\n Diet")
+    print("Select your Choice")
+    print("Exercise\n Diet")
     choice = request.form.get('choice')
     
     if choice =='Exercise':
-        #print("Ask anything about exercises, I can create custom workout plans for you")
+        print("Ask anything about exercises, I can create custom workout plans for you")
         query = request.form.get('query')
         #return jsonify({'query':query})
         chain = get_chain_workout()
         
     else:
-        #print("Ask anything about diet plan, I can create custom diet plans fro you")
+        print("Ask anything about diet plan, I can create custom diet plans fro you")
         query = request.form.get('query')
         chain = get_chain_diet()
 
