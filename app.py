@@ -6,9 +6,6 @@ from langchain_community.document_loaders import CSVLoader
 from langchain_community.embeddings import HuggingFaceInstructEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain.chains import RetrievalQA
-import argparse
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
 import os
 
 app = Flask(__name__)
@@ -20,12 +17,6 @@ instructor_embeddings = HuggingFaceInstructEmbeddings(model_name="hkunlp/instruc
 
 vector_file_path_exercise = "faiss_index_exercise"
 vector_file_path_diet = "faiss_index_diet"
-
-
-DEVELOPER_KEY = 'AIzaSyBercjcY50CUn2ju-SGkCdmKvpDlbPS7LM'
-YOUTUBE_API_SERVICE_NAME = 'youtube'
-YOUTUBE_API_VERSION = 'v3'
-app = Flask(__name__)
 
 def create_workout_vectordb():
     loader = CSVLoader("Workout.csv", encoding = "utf8")
@@ -64,36 +55,43 @@ def get_chain_diet():
                             )
     return diet_chain
 
+@app.route('/AITrainer', methods = ['POST'])
+def AITrainer():
+    data = request.json
+    goal = data["Fitness_Goals"]
+    intensity = data["I_Workout"]
+    workout_type = data["Workout_Type"]
+    weight = data["weight"]
+    preference = data["Preferences"]["Selected_Options"]
+    chain = get_chain_workout()
+    sample = {
+  "Monday": {
+    "Muscle Group": "Muscle Group name",
+    "Exercises": [
+      {
+        "Name": "Exercise name1",
+        "Sets": "Number of sets",
+        "Reps": "Number of reps"
+      },
+      {
+        "Name": "Exercise name2",
+        "Sets": "Number of reps",
+        "Reps": "Number of sets"
+      }
+    ]
+  }
+    }
+    response1 = chain.invoke(f" Create one week workout plan which ensures that each muscle group that is chest, back, arms, legs, abs are trained. I have these equipments and these are my workout days {preference}. Only give those workouts that can be done with the equipments I mentioned and I want {workout_type}. My current weight is {weight} and my goal is {goal} and I wworkout {intensity}. Make sure to include the rest days as the days which are not my workout days and display all the 7 days with atleast 4 exercises for each day with proper reps and sets. Please give the result in JSON Format with sets and reps. Please follow this sample as JSON format and give response in this fomat only: {sample}")["result"]
+    # print("Week 1: ", response1)
+    response2 = chain.invoke(f"This was my first week workout plan {response1}. Create the next week workout plan. PLease make sure to change the exercises and increase a bit intensity by recommending more reps or increasing weights")["result"]
+    # print("Week2: ", response2)
+    response3 = chain.invoke(f"This was my second week workout plan {response2}. Create the next week workout plan. Plase make sure to change the exercises and increase a bit intensity by recommending more reps or increasing weights")["result"]
+    # print("Week3:" ,response3)
+    response4 = chain.invoke(f"This was my third week workout plan {response1}. Create the next week workout plan. Please make sure to change the exercises and increase a bit intensity by recommending more reps or increasing weights")["result"]
+    # print("Week4", response4)
+    response = "Week1: " + response1 + "\nWeek2: " + response2 +"\nWeek3: " + response3 +"\nWeek4: " + response4
+    return jsonify({'response':response})
 
-@app.route('/get_video_id', methods=['POST'])
-def youtube_search():
-    query_term = request.form.get("Exercise")
-    # print(query_term)
-    query_term = "How to do" + query_term
-    youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION,
-        developerKey=DEVELOPER_KEY)
-
-    # Call the search.list method to retrieve results matching the specified
-    # query term.
-    search_response = youtube.search().list(
-        q=query_term,
-        part='id,snippet',
-        type='video',
-        relevanceLanguage='en',
-        maxResults=1
-    ).execute()
-
-    video_ids = []
-    search_response["items"][0]['id']['videoId']
-
-    # Add each result to the appropriate list, and then display the lists of
-    # matching videos, channels, and playlists.
-    for search_result in search_response.get('items', []):
-        video_ids.append(search_result['id']['videoId'])
-
-    for i in video_ids:
-        id = i
-    return id
 
 @app.route('/get_data', methods=['GET', 'POST'])
 def handle_data():
