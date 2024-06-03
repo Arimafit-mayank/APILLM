@@ -56,41 +56,70 @@ def get_chain_diet():
     return diet_chain
 
 @app.route('/AITrainer', methods = ['POST'])
-def AITrainer():
+def AITrainer(data):
     data = request.json
     goal = data["Fitness_Goals"]
     intensity = data["I_Workout"]
     workout_type = data["Workout_Type"]
     weight = data["weight"]
     preference = data["Preferences"]["Selected_Options"]
+    print(preference)
+    sample='''Name of Week day: Muscle Group1
+    4 exercises in bullet points
+    Name of Week day: Muscle Group2
+    4 exercises in bullet points
+    Name of Week day: Muscle Group3
+    4 exercises in bullet points
+    Name of Week day: Muscle Group4
+    4 exercises in bullet points
+
+    '''
     chain = get_chain_workout()
-    sample = {
-  "Monday": {
-    "Muscle Group": "Muscle Group name",
-    "Exercises": [
-      {
-        "Name": "Exercise name1",
-        "Sets": "Number of sets",
-        "Reps": "Number of reps"
-      },
-      {
-        "Name": "Exercise name2",
-        "Sets": "Number of reps",
-        "Reps": "Number of sets"
-      }
-    ]
-  }
-    }
-    response1 = chain.invoke(f" Create one week workout plan which ensures that each muscle group that is chest, back, arms, legs, abs are trained. I have these equipments and these are my workout days {preference}. Only give those workouts that can be done with the equipments I mentioned and I want {workout_type}. My current weight is {weight} and my goal is {goal} and I wworkout {intensity}. Make sure to include the rest days as the days which are not my workout days and display all the 7 days with atleast 4 exercises for each day with proper reps and sets. Please give the result in JSON Format with sets and reps. Please follow this sample as JSON format and give response in this fomat only: {sample}")["result"]
+    query = f"""
+    Please create a one-week workout plan. 
+    Make sure each muscle group (chest, back, arms, legs, abs) is trained.
+    Use only the equipment I have: {preference}. 
+    My workout type is: {workout_type}.
+    My current weight is: {weight}. 
+    My goal is: {goal}. 
+    My workout intensity is: {intensity}.
+    Include rest days for days I don't workout.
+    Display all 7 days with at least 4 exercises per day.
+    Provide proper reps and sets.
+    Do not use any special characters or symbols in the response.
+    Only use simple text and the English alphabet.
+    The format should be: ${sample}.
+    """
+    response1 = chain.invoke(query)["result"]
+
+    # query = f"Give the output in this format: ${sample}. Please Don't use any special character in the response. Don't use | symbol. Give me neat and clean result. Write only simple text. Important Please don't use any special character and write only simple text response with english alphabet only. Create one week workout plan which ensures that each muscle group that is chest, back, arms, legs, abs are trained. I have these equipments and these are my workout days {preference}. Only give those workouts that can be done with the equipments I mentioned and I want {workout_type}. My current weight is {weight} and my goal is {goal} and I wworkout {intensity}. Make sure to include the rest days as the days which are not my workout days and display all the 7 days with atleast 4 exercises for each day with proper reps and sets."
+    # response1 = chain.invoke(query)["result"]
     # print("Week 1: ", response1)
-    response2 = chain.invoke(f"This was my first week workout plan {response1}. Create the next week workout plan. PLease make sure to change the exercises and increase a bit intensity by recommending more reps or increasing weights")["result"]
-    # print("Week2: ", response2)
-    response3 = chain.invoke(f"This was my second week workout plan {response2}. Create the next week workout plan. Plase make sure to change the exercises and increase a bit intensity by recommending more reps or increasing weights")["result"]
-    # print("Week3:" ,response3)
-    response4 = chain.invoke(f"This was my third week workout plan {response1}. Create the next week workout plan. Please make sure to change the exercises and increase a bit intensity by recommending more reps or increasing weights")["result"]
-    # print("Week4", response4)
+    response2 = chain.invoke(f"""
+Keep the exact same format as this: ${response1}. 
+Do not add anything extra in the response. 
+This was my first week workout plan: {response1}. 
+Create the next week's workout plan. 
+Please make sure to change the exercises and increase the intensity by recommending more reps or increasing weights.
+""")["result"]
+
+    response3 = chain.invoke(f"""
+    Keep the exact same format as this: ${response2}. 
+    Do not add anything extra in the response. 
+    This was my second week workout plan: {response2}. 
+    Create the next week's workout plan. 
+    Please make sure to change the exercises and increase the intensity by recommending more reps or increasing weights.
+    """)["result"]
+
+    response4 = chain.invoke(f"""
+    Keep the exact same format as this: ${response3}. 
+    Do not add anything extra in the response. 
+    This was my third week workout plan: {response3}. 
+    Create the next week's workout plan. 
+    Please make sure to change the exercises and increase the intensity by recommending more reps or increasing weights.
+    """)["result"]
     response = "Week1: " + response1 + "\nWeek2: " + response2 +"\nWeek3: " + response3 +"\nWeek4: " + response4
-    return jsonify({'response':response})
+    return response
 
 
 @app.route('/get_data', methods=['GET', 'POST'])
