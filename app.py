@@ -7,6 +7,8 @@ from langchain_community.embeddings import HuggingFaceInstructEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain.chains import RetrievalQA
 import os
+from googleapiclient.discovery import build
+
 
 app = Flask(__name__)
 
@@ -56,7 +58,7 @@ def get_chain_diet():
     return diet_chain
 
 @app.route('/AITrainer', methods = ['POST'])
-def AITrainer(data):
+def AITrainer():
     data = request.json
     goal = data["Fitness_Goals"]
     intensity = data["I_Workout"]
@@ -121,6 +123,34 @@ Please make sure to change the exercises and increase the intensity by recommend
     response = "Week1: " + response1 + "\nWeek2: " + response2 +"\nWeek3: " + response3 +"\nWeek4: " + response4
     return response
 
+# API key for youtube video id
+api_key = "AIzaSyBercjcY50CUn2ju-SGkCdmKvpDlbPS7LM"
+
+# Create a service object for interacting with the YouTube API
+youtube = build('youtube', 'v3', developerKey=api_key)
+
+
+@app.route('/get_video_id', methods = ['POST'])
+def get_video_id():
+    Exercise = request.form.get('Exercise')
+    title = Exercise
+    # Make a request to the API's search.list method to search for videos by title
+    search_response = youtube.search().list(
+        q=title,
+        part='id',
+        type='video',
+        maxResults=1  # Specify the number of results you want to retrieve
+    ).execute()
+
+    # Check if any items were returned in the search response
+    if 'items' in search_response and search_response['items']:
+        # Extract the video ID of the top result
+        video_id = search_response['items'][0]['id']['videoId']
+        return video_id
+    else:
+        print("No videos found matching the search criteria.")
+        print("Search response:", search_response)  # Print out the search response for inspection
+        return None
 
 @app.route('/get_data', methods=['GET', 'POST'])
 def handle_data():
