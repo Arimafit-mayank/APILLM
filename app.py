@@ -8,6 +8,7 @@ from langchain_community.vectorstores import FAISS
 from langchain.chains import RetrievalQA
 import os
 from googleapiclient.discovery import build
+import re
 
 
 app = Flask(__name__)
@@ -123,6 +124,67 @@ Please make sure to change the exercises and increase the intensity by recommend
     response = "Week1: " + response1 + "\nWeek2: " + response2 +"\nWeek3: " + response3 +"\nWeek4: " + response4
     return response
 
+def clean_format(text):
+    # Remove asterisks and other unwanted characters/formatting
+    text = re.sub(r'\*', '', text)
+    text = re.sub(r'\$', '', text)
+    text = re.sub(r'\#', '', text)
+    # text = re.sub(r'\s+', ' ', text).strip()  # Remove extra spaces and newlines
+    return text
+
+@app.route('/get_diet', methods = ['POST'])
+def get_diet():
+    data = request.json
+    current_weight = data["Current Weight"]
+    goal_weight = data["Goal Weight"]
+    meal_type = data["Meal Type"]
+    meals_per_day = data["Meals per day"]
+    chain = get_chain_diet()
+
+    response1 = chain.invoke(f'''I am currently {current_weight} and my goal is to reach {goal_weight}. I follow a {meal_type} diet and prefer to have {meals_per_day} meals per day. Can you please prepare a diet chart for one week based on these factors? The diet chart should be balanced and healthy, helping me achieve my weight loss goal while ensuring I get all necessary nutrients.
+    Please provide the response in the following format.:
+    Monday:
+    Meal 1: Meal
+    Meal 2: Meal
+    Meal 3: Meal
+    Meal 4: Meal
+    Tuesday:
+    Meal 1: Meal
+    Meal 2: Meal
+    Meal 3: Meal
+    Meal 4: Meal and so on for all days in a week''')["result"]
+    response1 = clean_format(response1)
+    print(response1)
+    response2 = chain.invoke(f"""Keep the exact same format.
+    Important Do not add anything extra in the response. 
+    This was my first week diet plan. Make changes to it:{response1}. 
+    Create the next week's diet plan. 
+    """)["result"]
+    response2 = clean_format(response2)
+    print(response2)
+    # return response2
+    response3 = chain.invoke(f"""Keep the exact same format as this: ${response2}. 
+    Important Do not add anything extra in the response. 
+    This was my second week diet plan: {response2}. 
+    Create the next week's diet plan. 
+    """)["result"]
+    response3 = clean_format(response3)
+    print(response3)
+    # return response3
+    response4 = chain.invoke(f"""Keep the exact same format as this: ${response3}. 
+    Important Do not add anything extra in the response..
+    This was my first week diet plan: {response3}. 
+    Create the next week's diet plan. 
+    """)["result"]
+    response4 = clean_format(response4)
+    print(response4)
+    # return response4
+    
+    response = "Week1\n: " + response1 + "\nWeek2:\n " + response2 +"\nWeek3:\n " + response3 +"\nWeek4:\n " + response4
+    return response
+    
+    # return jsonify(response1)
+    # return "1"
 # API key for youtube video id
 api_key = "AIzaSyBercjcY50CUn2ju-SGkCdmKvpDlbPS7LM"
 
